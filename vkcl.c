@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <alloca.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include "vkcl.h"
 
 #define VK_CHK(result) {  if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }  }
@@ -147,7 +151,6 @@ int main(int argc, char** argv) {
         }
         vkUnmapMemory(device, memory);
 
-
         const VkBufferCreateInfo bufferCreateInfo = {
             VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             0,
@@ -167,12 +170,35 @@ int main(int argc, char** argv) {
         VK_CHK(vkCreateBuffer(device, &bufferCreateInfo, 0, &out_buffer));
         VK_CHK(vkBindBufferMemory(device, out_buffer, memory, bufferSize));
 
+        int spv_len = 0;
+        char *spv_shader = NULL;
+        {
+            struct stat buffer;
+            int         status;
+
+            status = stat(argv[1], &buffer);
+            if(stat(argv[1], &buffer) == 0){
+                printf("spir-v size %ld %ld\n", buffer.st_size, sizeof(shader));
+                spv_shader = (char*)malloc(buffer.st_size);
+                spv_len = buffer.st_size;
+                FILE *fptr = fopen(argv[1], "rb");
+                fread(spv_shader, 1, spv_len, fptr);
+                fclose(fptr);
+            }else{
+                printf("open shader file failed\n");
+            }
+        }
         VkShaderModuleCreateInfo shaderModuleCreateInfo = {
             VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             0,
             0,
+            #if 0
             sizeof(shader),
             (unsigned int*)(&shader)
+            #else
+            spv_len,
+            (unsigned int*)(&spv_shader)
+            #endif
         };
         VkShaderModule shader_module;
         VK_CHK(vkCreateShaderModule(device, &shaderModuleCreateInfo, 0, &shader_module));
@@ -323,6 +349,7 @@ int main(int argc, char** argv) {
             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
             0
         };
+
         VK_CHK(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
@@ -350,7 +377,9 @@ int main(int argc, char** argv) {
         for (uint32_t k = 0, e = bufferSize / sizeof(int32_t); k < e; k++) {
             VK_CHK(payload[k + e] == payload[k] ? VK_SUCCESS : VK_ERROR_VALIDATION_FAILED_EXT);
         }
+        vkUnmapMemory(device, memory);
 
+        free(spv_shader);
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
         vkDestroyCommandPool(device, commandPool, NULL);
         vkDestroyDescriptorPool(device, descriptorPool, NULL);
