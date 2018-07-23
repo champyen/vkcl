@@ -170,6 +170,7 @@ int main(int argc, char** argv) {
         VK_CHK(vkCreateBuffer(device, &bufferCreateInfo, 0, &out_buffer));
         VK_CHK(vkBindBufferMemory(device, out_buffer, memory, bufferSize));
 
+        // read-in SPIR-V binary from CL compilation
         int spv_len = 0;
         char *spv_shader = NULL;
         {
@@ -178,7 +179,7 @@ int main(int argc, char** argv) {
 
             status = stat(argv[1], &buffer);
             if(stat(argv[1], &buffer) == 0){
-                printf("spir-v size %ld %ld\n", buffer.st_size, sizeof(shader));
+                printf("spir-v size %ld\n", buffer.st_size);
                 spv_shader = (char*)malloc(buffer.st_size);
                 spv_len = buffer.st_size;
                 FILE *fptr = fopen(argv[1], "rb");
@@ -197,7 +198,7 @@ int main(int argc, char** argv) {
             (unsigned int*)(&shader)
             #else
             spv_len,
-            (unsigned int*)(&spv_shader)
+            (unsigned int*)(spv_shader)
             #endif
         };
         VkShaderModule shader_module;
@@ -251,7 +252,7 @@ int main(int argc, char** argv) {
                 0,
                 VK_SHADER_STAGE_COMPUTE_BIT,
                 shader_module,
-                "f",
+                "vkcl",
                 0
             },
             pipelineLayout,

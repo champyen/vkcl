@@ -80,7 +80,7 @@ int32_t shader[] = {
     (3 << 16) | OP_MEMORY_MODEL, 0, 0,
 
     // OpEntryPoint GLCompute %FUNC_ID "f" %IN_ID %OUT_ID
-    (4 << 16) | OP_ENTRY_POINT, 5, FUNC_ID, 0x00000066,
+    (5 << 16) | OP_ENTRY_POINT, 5, FUNC_ID, 0x6C636B76, 0,
 
     // OpExecutionMode %FUNC_ID LocalSize 1 1 1
     (6 << 16) | OP_EXECUTION_MODE, FUNC_ID, 17, 1, 1, 1,
