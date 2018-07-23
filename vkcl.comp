@@ -1,0 +1,19 @@
+#version 450
+
+layout (local_size_x = 1) in;
+
+layout (binding = 0) buffer buf0
+{
+    int inbuf[];
+};
+
+layout (binding = 1) buffer buf1
+{
+    int outbuf[];
+};
+
+void vkcl(void)
+{
+    uint gid = gl_GlobalInvocationID.x;
+    outbuf[gid] = inbuf[gid];
+}
