@@ -23,3 +23,11 @@ queueFamilyIndex 0
 spir-v size 812
 DONE
 ```
+
+Android NDK:
+```
+$ ndk-build NDK_PROJECT_PATH=. NDK_APPLICATION_MK=Application.mk APP_BUILD_SCRIPT=Android.mk
+$ adb push libs/arm64-v8a/vkcl /data/local/tmp ; adb shell "chmod 755 /data/local/tmp/vkcl"
+$ adb push vkcl.spv /data/local/tmp
+$ adb shell "/data/local/tmp/vkcl /data/local/tmp/vkcl.spv"
+```
