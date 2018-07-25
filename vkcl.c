@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
         0,
         "",
         0,
-        VK_MAKE_VERSION(1, 1, 70)
+        VK_MAKE_VERSION(1, 0, 54)
     };
 
     const VkInstanceCreateInfo instanceCreateInfo = {
