@@ -1,7 +1,6 @@
 
 CC=clang
 CLSPV=clspv
-INC=-I/usr/include/vulkan/
 LIB=-lvulkan
 
 vkcl: vkcl.h vkcl.c vkcl.cl

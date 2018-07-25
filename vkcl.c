@@ -1,5 +1,5 @@
 
-#include "vulkan.h"
+#include <vulkan/vulkan.h>
 
 #include <stdio.h>
 #include <stdlib.h>
