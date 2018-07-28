@@ -203,6 +203,7 @@ int main(int argc, char** argv) {
         };
         VkShaderModule shader_module;
         VK_CHK(vkCreateShaderModule(device, &shaderModuleCreateInfo, 0, &shader_module));
+        free(spv_shader);
 
         VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[2] = {
             {
@@ -380,7 +381,6 @@ int main(int argc, char** argv) {
         }
         vkUnmapMemory(device, memory);
 
-        free(spv_shader);
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
         vkDestroyCommandPool(device, commandPool, NULL);
         vkDestroyDescriptorPool(device, descriptorPool, NULL);
@@ -390,6 +390,7 @@ int main(int argc, char** argv) {
         vkDestroyShaderModule(device, shader_module, NULL);
         vkDestroyBuffer(device, out_buffer, NULL);
         vkDestroyBuffer(device, in_buffer, NULL);
+        vkFreeMemory(device, memory, NULL);
         vkDestroyDevice(device, NULL);
     }
 
