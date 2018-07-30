@@ -1,162 +1,85 @@
 #ifndef _VKCL_H_
 #define _VKCL_H_
 
-#define TEST_BUFLEN 16384
 
-enum {
-    RESERVED_ID = 0,
-    FUNC_ID,
-    IN_ID,
-    OUT_ID,
-    GLOBAL_INVOCATION_ID,
-    VOID_TYPE_ID,
-    FUNC_TYPE_ID,
-    INT_TYPE_ID,
-    INT_ARRAY_TYPE_ID,
-    STRUCT_ID,
-    POINTER_TYPE_ID,
-    ELEMENT_POINTER_TYPE_ID,
-    INT_VECTOR_TYPE_ID,
-    INT_VECTOR_POINTER_TYPE_ID,
-    INT_POINTER_TYPE_ID,
-    CONSTANT_ZERO_ID,
-    CONSTANT_ARRAY_LENGTH_ID,
-    LABEL_ID,
-    IN_ELEMENT_ID,
-    OUT_ELEMENT_ID,
-    GLOBAL_INVOCATION_X_ID,
-    GLOBAL_INVOCATION_X_PTR_ID,
-    TEMP_LOADED_ID,
-    BOUND
-};
+#include <vulkan/vulkan.h>
 
-enum {
-    INPUT = 1,
-    UNIFORM = 2,
-    BUFFER_BLOCK = 3,
-    ARRAY_STRIDE = 6,
-    BUILTIN = 11,
-    BINDING = 33,
-    OFFSET = 35,
-    DESCRIPTOR_SET = 34,
-    GLOBAL_INVOCATION = 28,
-    OP_TYPE_VOID = 19,
-    OP_TYPE_FUNCTION = 33,
-    OP_TYPE_INT = 21,
-    OP_TYPE_VECTOR = 23,
-    OP_TYPE_ARRAY = 28,
-    OP_TYPE_STRUCT = 30,
-    OP_TYPE_POINTER = 32,
-    OP_VARIABLE = 59,
-    OP_DECORATE = 71,
-    OP_MEMBER_DECORATE = 72,
-    OP_FUNCTION = 54,
-    OP_LABEL = 248,
-    OP_ACCESS_CHAIN = 65,
-    OP_CONSTANT = 43,
-    OP_LOAD = 61,
-    OP_STORE = 62,
-    OP_RETURN = 253,
-    OP_FUNCTION_END = 56,
-    OP_CAPABILITY = 17,
-    OP_MEMORY_MODEL = 14,
-    OP_ENTRY_POINT = 15,
-    OP_EXECUTION_MODE = 16,
-    OP_COMPOSITE_EXTRACT = 81,
-};
+typedef struct{
+    VkInstance                          instance;
+    VkPhysicalDevice                    phy_dev;
+    VkDevice                            dev;
+    VkPhysicalDeviceMemoryProperties    phy_mem_prop;
+    VkQueue                             queue;
+    uint32_t                            qfam_idx;
+} vkcl_context;
 
-int32_t shader[] = {
-    // first is the SPIR-V header
-    0x07230203, // magic header ID
-    0x00010000, // version 1.0.0
-    0,          // generator (optional)
-    BOUND,      // bound
-    0,          // schema
+typedef struct{
+    VkMemoryRequirements                mem_req;
+    VkMemoryAllocateInfo                info;
+    VkDeviceMemory                      memory;
+    VkDeviceSize                        size;
+    uint32_t                            type;
+    void                                *ptr;
+    vkcl_context                        *ctx;
+} vkcl_memory;
 
-    // OpCapability Shader
-    (2 << 16) | OP_CAPABILITY, 1,
+typedef struct{
+    uint32_t                            set_id;
+    VkDescriptorSetLayoutCreateInfo     layout_info;
+    VkDescriptorSetLayout               layout;
 
-    // OpMemoryModel Logical Simple
-    (3 << 16) | OP_MEMORY_MODEL, 0, 0,
+    VkDescriptorPool                    desc_pool;
+    VkDescriptorSetAllocateInfo         alloc_info;
+    VkDescriptorSet                     set;
 
-    // OpEntryPoint GLCompute %FUNC_ID "f" %IN_ID %OUT_ID
-    (5 << 16) | OP_ENTRY_POINT, 5, FUNC_ID, 0x6C636B76, 0,
+    VkWriteDescriptorSet                update;
+    uint32_t                            mem_count;
+} vkcl_descset;
 
-    // OpExecutionMode %FUNC_ID LocalSize 1 1 1
-    (6 << 16) | OP_EXECUTION_MODE, FUNC_ID, 17, 1, 1, 1,
+typedef struct{
+    uint32_t                            bind_id;
+    VkBufferCreateInfo                  info;
+    VkBuffer                            buffer;
 
-    // next declare decorations
+    VkDescriptorSetLayoutBinding        binding;
 
-    (3 << 16) | OP_DECORATE, STRUCT_ID, BUFFER_BLOCK,
+    VkDescriptorPoolSize                pool_size;
+    VkDescriptorBufferInfo              desc_info;
+    VkWriteDescriptorSet                update_info;
+    vkcl_context                        *ctx;
+    vkcl_descset                        *set;
+    vkcl_memory                         *mem;
+} vkcl_buffer;
 
-    (4 << 16) | OP_DECORATE, GLOBAL_INVOCATION_ID, BUILTIN, GLOBAL_INVOCATION,
+typedef struct{
+    VkDescriptorSetLayoutBinding        binding;
+    VkImageCreateInfo                   info;
+    VkImage                             image;
 
-    (4 << 16) | OP_DECORATE, IN_ID, DESCRIPTOR_SET, 0,
+    VkDescriptorPoolSize                pool_size;
+    VkDescriptorImageInfo               desc_info;
+    VkWriteDescriptorSet                update_info;
+    vkcl_descset                        *set;
+    vkcl_memory                         *mem;
+} vkcl_image;
 
-    (4 << 16) | OP_DECORATE, IN_ID, BINDING, 0,
+typedef struct{
+    VkShaderModuleCreateInfo            shader_info;
+    VkShaderModule                      shader_module;
 
-    (4 << 16) | OP_DECORATE, OUT_ID, DESCRIPTOR_SET, 0,
+    VkPipelineLayoutCreateInfo          info;
+    VkComputePipelineCreateInfo         comp_info;
+    VkPipeline                          pipeline;
+} vkcl_pipeline;
 
-    (4 << 16) | OP_DECORATE, OUT_ID, BINDING, 1,
+typedef struct{
+    VkCommandPoolCreateInfo             pool_info;
+    VkCommandPool                       pool;
+    VkCommandBufferAllocateInfo         buf_info;
+    VkCommandBuffer                     buf;
+    VkCommandBufferBeginInfo            begin_info;
+} vkcl_command;
 
-    (4 << 16) | OP_DECORATE, INT_ARRAY_TYPE_ID, ARRAY_STRIDE, 4,
-
-    (5 << 16) | OP_MEMBER_DECORATE, STRUCT_ID, 0, OFFSET, 0,
-
-    // next declare types
-    (2 << 16) | OP_TYPE_VOID, VOID_TYPE_ID,
-
-    (3 << 16) | OP_TYPE_FUNCTION, FUNC_TYPE_ID, VOID_TYPE_ID,
-
-    (4 << 16) | OP_TYPE_INT, INT_TYPE_ID, 32, 1,
-
-    (4 << 16) | OP_CONSTANT, INT_TYPE_ID, CONSTANT_ARRAY_LENGTH_ID, TEST_BUFLEN,
-
-    (4 << 16) | OP_TYPE_ARRAY, INT_ARRAY_TYPE_ID, INT_TYPE_ID, CONSTANT_ARRAY_LENGTH_ID,
-
-    (3 << 16) | OP_TYPE_STRUCT, STRUCT_ID, INT_ARRAY_TYPE_ID,
-
-    (4 << 16) | OP_TYPE_POINTER, POINTER_TYPE_ID, UNIFORM, STRUCT_ID,
-
-    (4 << 16) | OP_TYPE_POINTER, ELEMENT_POINTER_TYPE_ID, UNIFORM, INT_TYPE_ID,
-
-    (4 << 16) | OP_TYPE_VECTOR, INT_VECTOR_TYPE_ID, INT_TYPE_ID, 3,
-
-    (4 << 16) | OP_TYPE_POINTER, INT_VECTOR_POINTER_TYPE_ID, INPUT, INT_VECTOR_TYPE_ID,
-
-    (4 << 16) | OP_TYPE_POINTER, INT_POINTER_TYPE_ID, INPUT, INT_TYPE_ID,
-
-    // then declare constants
-    (4 << 16) | OP_CONSTANT, INT_TYPE_ID, CONSTANT_ZERO_ID, 0,
-
-    // then declare variables
-    (4 << 16) | OP_VARIABLE, POINTER_TYPE_ID, IN_ID, UNIFORM,
-
-    (4 << 16) | OP_VARIABLE, POINTER_TYPE_ID, OUT_ID, UNIFORM,
-
-    (4 << 16) | OP_VARIABLE, INT_VECTOR_POINTER_TYPE_ID, GLOBAL_INVOCATION_ID, INPUT,
-
-    // then declare function
-    (5 << 16) | OP_FUNCTION, VOID_TYPE_ID, FUNC_ID, 0, FUNC_TYPE_ID,
-
-    (2 << 16) | OP_LABEL, LABEL_ID,
-
-    (5 << 16) | OP_ACCESS_CHAIN, INT_POINTER_TYPE_ID, GLOBAL_INVOCATION_X_PTR_ID, GLOBAL_INVOCATION_ID, CONSTANT_ZERO_ID,
-
-    (4 << 16) | OP_LOAD, INT_TYPE_ID, GLOBAL_INVOCATION_X_ID, GLOBAL_INVOCATION_X_PTR_ID,
-
-    (6 << 16) | OP_ACCESS_CHAIN, ELEMENT_POINTER_TYPE_ID, IN_ELEMENT_ID, IN_ID, CONSTANT_ZERO_ID, GLOBAL_INVOCATION_X_ID,
-
-    (4 << 16) | OP_LOAD, INT_TYPE_ID, TEMP_LOADED_ID, IN_ELEMENT_ID,
-
-    (6 << 16) | OP_ACCESS_CHAIN, ELEMENT_POINTER_TYPE_ID, OUT_ELEMENT_ID, OUT_ID, CONSTANT_ZERO_ID, GLOBAL_INVOCATION_X_ID,
-
-    (3 << 16) | OP_STORE, OUT_ELEMENT_ID, TEMP_LOADED_ID,
-
-    (1 << 16) | OP_RETURN,
-
-    (1 << 16) | OP_FUNCTION_END,
-};
-
+#define VK_CHK(result) {  if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }  }
 
 #endif
