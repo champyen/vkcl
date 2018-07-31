@@ -23,17 +23,22 @@ typedef struct{
     vkcl_context                        *ctx;
 } vkcl_memory;
 
+
+#define MAX_DESCRIPTOR                  16
 typedef struct{
     uint32_t                            set_id;
-    VkDescriptorSetLayoutCreateInfo     layout_info;
-    VkDescriptorSetLayout               layout;
+    VkDescriptorSetLayoutBinding        descriptorSetLayoutBindings[MAX_DESCRIPTOR];
+    VkDescriptorPoolSize                descriptorPoolSize[MAX_DESCRIPTOR];
+    VkWriteDescriptorSet                writeDescriptorSet[MAX_DESCRIPTOR];
 
-    VkDescriptorPool                    desc_pool;
-    VkDescriptorSetAllocateInfo         alloc_info;
-    VkDescriptorSet                     set;
+    VkDescriptorSetLayout               descriptorSetLayout;
+    VkDescriptorSet                     descriptorSet;
+    VkDescriptorPool                    descriptorPool;
 
-    VkWriteDescriptorSet                update;
-    uint32_t                            mem_count;
+    VkDescriptorSetAllocateInfo         descriptorSetAllocateInfo;
+
+    vkcl_context                        *ctx;
+    uint32_t                            bindings;
 } vkcl_descset;
 
 typedef struct{
@@ -64,11 +69,7 @@ typedef struct{
 } vkcl_image;
 
 typedef struct{
-    VkShaderModuleCreateInfo            shader_info;
     VkShaderModule                      shader_module;
-
-    VkPipelineLayoutCreateInfo          info;
-    VkComputePipelineCreateInfo         comp_info;
     VkPipeline                          pipeline;
 } vkcl_pipeline;
 

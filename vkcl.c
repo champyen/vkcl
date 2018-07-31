@@ -313,12 +313,22 @@ void vkcl_memory_unmap(vkcl_memory *mem)
 
 vkcl_descset* vkcl_descset_create(vkcl_context *ctx, uint32_t set_id)
 {
-    vkcl_descset *set = (vkcl_descset*)malloc(sizeof(vkcl_descset));
+    vkcl_descset *set = (vkcl_descset*)calloc(1, sizeof(vkcl_descset));
     set->set_id = set_id;
     return set;
 }
 
-vkcl_buffer *vkcl_buffer_create(vkcl_context *ctx, uint32_t binding, uint32_t size, vkcl_memory *mem, uint32_t offset)
+void vkcl_descset_destroy(vkcl_descset *set)
+{
+    if(set){
+        vkcl_context *ctx = set->ctx;
+        vkDestroyDescriptorPool(ctx->dev, set->descriptorPool, NULL);
+        vkDestroyDescriptorSetLayout(ctx->dev, set->descriptorSetLayout, NULL);
+        free(set);
+    }
+}
+
+vkcl_buffer *vkcl_buffer_create(vkcl_context *ctx, vkcl_descset *set, uint32_t size, vkcl_memory *mem, uint32_t offset)
 {
     vkcl_buffer *buf = (vkcl_buffer*)calloc(1, sizeof(vkcl_buffer));
     const VkBufferCreateInfo bufferCreateInfo = {
@@ -333,7 +343,9 @@ vkcl_buffer *vkcl_buffer_create(vkcl_context *ctx, uint32_t binding, uint32_t si
     };
     VK_CHK(vkCreateBuffer(ctx->dev, &bufferCreateInfo, 0, &buf->buffer));
     VK_CHK(vkBindBufferMemory(ctx->dev, buf->buffer, mem->memory, offset));
+    buf->set = set;
 
+    /*
     buf->binding.binding = binding;
     buf->binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     buf->binding.descriptorCount = 1;
@@ -342,10 +354,39 @@ vkcl_buffer *vkcl_buffer_create(vkcl_context *ctx, uint32_t binding, uint32_t si
 
     buf->pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     buf->pool_size.descriptorCount = 1;
-
+    */
     buf->desc_info.buffer = buf->buffer;
     buf->desc_info.offset = 0;
     buf->desc_info.range = VK_WHOLE_SIZE;
+
+    uint32_t binding = set->bindings++;
+    set->descriptorSetLayoutBindings[binding].binding = binding;
+    set->descriptorSetLayoutBindings[binding].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    set->descriptorSetLayoutBindings[binding].descriptorCount = 1;
+    set->descriptorSetLayoutBindings[binding].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    set->descriptorSetLayoutBindings[binding].pImmutableSamplers = NULL;
+
+    set->descriptorPoolSize[binding].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    set->descriptorPoolSize[binding].descriptorCount = 1;
+
+    VkWriteDescriptorSet writeDescriptorSet = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        0,
+        0, //descriptorSet,
+        binding,
+        0,
+        1,
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        0,
+        &buf->desc_info,
+        0
+    };
+    /*
+    set->writeDescriptorSet[binding].buffer = buf->buffer;
+    set->writeDescriptorSet[binding].offset = 0;
+    set->writeDescriptorSet[binding].range = VK_WHOLE_SIZE;
+    */
+    set->writeDescriptorSet[binding] = writeDescriptorSet;
 
     buf->ctx = ctx;
     return buf;
@@ -387,8 +428,9 @@ int main(int argc, char** argv) {
         }
         vkcl_memory_unmap(mem);
 
-        vkcl_buffer *in_buffer = vkcl_buffer_create(&ctx, 0, bufferSize, mem, 0);
-        vkcl_buffer *out_buffer = vkcl_buffer_create(&ctx, 1, bufferSize, mem, bufferSize);
+        vkcl_descset *set = vkcl_descset_create(&ctx, 0);
+        vkcl_buffer *in_buffer = vkcl_buffer_create(&ctx, set, bufferSize, mem, 0);
+        vkcl_buffer *out_buffer = vkcl_buffer_create(&ctx, set, bufferSize, mem, bufferSize);
 
         // read-in SPIR-V binary from CL compilation
         int spv_len = 0;
@@ -425,26 +467,22 @@ int main(int argc, char** argv) {
         VK_CHK(vkCreateShaderModule(ctx.dev, &shaderModuleCreateInfo, 0, &shader_module));
         free(spv_shader);
 
-        VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[2] = {
-            in_buffer->binding,
-            out_buffer->binding
-        };
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
             VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             0,
             0,
             2,
-            descriptorSetLayoutBindings
+            set->descriptorSetLayoutBindings
         };
-        VkDescriptorSetLayout descriptorSetLayout;
-        VK_CHK(vkCreateDescriptorSetLayout(ctx.dev, &descriptorSetLayoutCreateInfo, 0, &descriptorSetLayout));
+        //VkDescriptorSetLayout descriptorSetLayout;
+        VK_CHK(vkCreateDescriptorSetLayout(ctx.dev, &descriptorSetLayoutCreateInfo, 0, &set->descriptorSetLayout));
 
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
             VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             0,
             0,
             1,
-            &descriptorSetLayout,
+            &set->descriptorSetLayout,
             0,
             0
         };
@@ -471,71 +509,30 @@ int main(int argc, char** argv) {
         VkPipeline pipeline;
         VK_CHK(vkCreateComputePipelines(ctx.dev, 0, 1, &computePipelineCreateInfo, 0, &pipeline));
 
-        VkDescriptorPoolSize descriptorPoolSize[2] = {
-            in_buffer->pool_size,
-            out_buffer->pool_size
-        };
         VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
             VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             0,
             0,
             1,
             2,
-            descriptorPoolSize
+            set->descriptorPoolSize
         };
-        VkDescriptorPool descriptorPool;
-        VK_CHK(vkCreateDescriptorPool(ctx.dev, &descriptorPoolCreateInfo, 0, &descriptorPool));
+        //VkDescriptorPool descriptorPool;
+        VK_CHK(vkCreateDescriptorPool(ctx.dev, &descriptorPoolCreateInfo, 0, &set->descriptorPool));
 
         VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
             VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             0,
-            descriptorPool,
+            set->descriptorPool,
             1,
-            &descriptorSetLayout
+            &set->descriptorSetLayout
         };
-        VkDescriptorSet descriptorSet;
-        VK_CHK(vkAllocateDescriptorSets(ctx.dev, &descriptorSetAllocateInfo, &descriptorSet));
+        //VkDescriptorSet descriptorSet;
+        VK_CHK(vkAllocateDescriptorSets(ctx.dev, &descriptorSetAllocateInfo, &set->descriptorSet));
 
-        /*
-        VkDescriptorPoolSize descriptorPoolSize[2] = {
-            {
-                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                1
-            },
-            {
-                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                1
-            }
-        };
-        */
-        //TODO: wrapped in buffer struct
-        VkWriteDescriptorSet writeDescriptorSet[2] = {
-            {
-                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                0,
-                descriptorSet,
-                0,
-                0,
-                1,
-                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                0,
-                &in_buffer->desc_info,
-                0
-            },
-            {
-                VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                0,
-                descriptorSet,
-                1,
-                0,
-                1,
-                VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                0,
-                &out_buffer->desc_info,
-                0
-            }
-        };
-        vkUpdateDescriptorSets(ctx.dev, 2, writeDescriptorSet, 0, 0);
+        set->writeDescriptorSet[0].dstSet = set->descriptorSet;
+        set->writeDescriptorSet[1].dstSet = set->descriptorSet;
+        vkUpdateDescriptorSets(ctx.dev, 2, set->writeDescriptorSet, 0, 0);
 
         VkCommandPoolCreateInfo commandPoolCreateInfo = {
             VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -565,7 +562,7 @@ int main(int argc, char** argv) {
 
         VK_CHK(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, 0);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &set->descriptorSet, 0, 0);
         vkCmdDispatch(commandBuffer, bufferSize / sizeof(int32_t), 1, 1);
         VK_CHK(vkEndCommandBuffer(commandBuffer));
 
@@ -579,10 +576,10 @@ int main(int argc, char** argv) {
 
         vkFreeCommandBuffers(ctx.dev, commandPool, 1, &commandBuffer);
         vkDestroyCommandPool(ctx.dev, commandPool, NULL);
-        vkDestroyDescriptorPool(ctx.dev, descriptorPool, NULL);
         vkDestroyPipeline(ctx.dev, pipeline, NULL);
         vkDestroyPipelineLayout(ctx.dev, pipelineLayout, NULL);
-        vkDestroyDescriptorSetLayout(ctx.dev, descriptorSetLayout, NULL);
+        vkDestroyDescriptorPool(ctx.dev, set->descriptorPool, NULL);
+        vkDestroyDescriptorSetLayout(ctx.dev, set->descriptorSetLayout, NULL);
         vkDestroyShaderModule(ctx.dev, shader_module, NULL);
         //vkDestroyBuffer(ctx.dev, out_buffer, NULL);
         vkcl_buffer_destroy(out_buffer);
