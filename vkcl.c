@@ -11,132 +11,6 @@
 
 #define TEST_BUFLEN 16384
 
-enum {
-    RESERVED_ID = 0,
-    FUNC_ID,
-    IN_ID,
-    OUT_ID,
-    GLOBAL_INVOCATION_ID,
-    VOID_TYPE_ID,
-    FUNC_TYPE_ID,
-    INT_TYPE_ID,
-    INT_ARRAY_TYPE_ID,
-    STRUCT_ID,
-    POINTER_TYPE_ID,
-    ELEMENT_POINTER_TYPE_ID,
-    INT_VECTOR_TYPE_ID,
-    INT_VECTOR_POINTER_TYPE_ID,
-    INT_POINTER_TYPE_ID,
-    CONSTANT_ZERO_ID,
-    CONSTANT_ARRAY_LENGTH_ID,
-    LABEL_ID,
-    IN_ELEMENT_ID,
-    OUT_ELEMENT_ID,
-    GLOBAL_INVOCATION_X_ID,
-    GLOBAL_INVOCATION_X_PTR_ID,
-    TEMP_LOADED_ID,
-    BOUND
-};
-
-enum {
-    INPUT = 1,
-    UNIFORM = 2,
-    BUFFER_BLOCK = 3,
-    ARRAY_STRIDE = 6,
-    BUILTIN = 11,
-    BINDING = 33,
-    OFFSET = 35,
-    DESCRIPTOR_SET = 34,
-    GLOBAL_INVOCATION = 28,
-    OP_TYPE_VOID = 19,
-    OP_TYPE_FUNCTION = 33,
-    OP_TYPE_INT = 21,
-    OP_TYPE_VECTOR = 23,
-    OP_TYPE_ARRAY = 28,
-    OP_TYPE_STRUCT = 30,
-    OP_TYPE_POINTER = 32,
-    OP_VARIABLE = 59,
-    OP_DECORATE = 71,
-    OP_MEMBER_DECORATE = 72,
-    OP_FUNCTION = 54,
-    OP_LABEL = 248,
-    OP_ACCESS_CHAIN = 65,
-    OP_CONSTANT = 43,
-    OP_LOAD = 61,
-    OP_STORE = 62,
-    OP_RETURN = 253,
-    OP_FUNCTION_END = 56,
-    OP_CAPABILITY = 17,
-    OP_MEMORY_MODEL = 14,
-    OP_ENTRY_POINT = 15,
-    OP_EXECUTION_MODE = 16,
-    OP_COMPOSITE_EXTRACT = 81,
-};
-
-int32_t shader[] = {
-    // first is the SPIR-V header
-    0x07230203, // magic header ID
-    0x00010000, // version 1.0.0
-    0,          // generator (optional)
-    BOUND,      // bound
-    0,          // schema
-
-    // OpCapability Shader
-    (2 << 16) | OP_CAPABILITY, 1,
-
-    // OpMemoryModel Logical Simple
-    (3 << 16) | OP_MEMORY_MODEL, 0, 0,
-
-    // OpEntryPoint GLCompute %FUNC_ID "f" %IN_ID %OUT_ID
-    (5 << 16) | OP_ENTRY_POINT, 5, FUNC_ID, 0x6C636B76, 0,
-
-    // OpExecutionMode %FUNC_ID LocalSize 1 1 1
-    (6 << 16) | OP_EXECUTION_MODE, FUNC_ID, 17, 1, 1, 1,
-
-    // next declare decorations
-    (3 << 16) | OP_DECORATE, STRUCT_ID, BUFFER_BLOCK,
-    (4 << 16) | OP_DECORATE, GLOBAL_INVOCATION_ID, BUILTIN, GLOBAL_INVOCATION,
-    (4 << 16) | OP_DECORATE, IN_ID, DESCRIPTOR_SET, 0,
-    (4 << 16) | OP_DECORATE, IN_ID, BINDING, 0,
-    (4 << 16) | OP_DECORATE, OUT_ID, DESCRIPTOR_SET, 0,
-    (4 << 16) | OP_DECORATE, OUT_ID, BINDING, 1,
-    (4 << 16) | OP_DECORATE, INT_ARRAY_TYPE_ID, ARRAY_STRIDE, 4,
-    (5 << 16) | OP_MEMBER_DECORATE, STRUCT_ID, 0, OFFSET, 0,
-
-    // next declare types
-    (2 << 16) | OP_TYPE_VOID, VOID_TYPE_ID,
-    (3 << 16) | OP_TYPE_FUNCTION, FUNC_TYPE_ID, VOID_TYPE_ID,
-    (4 << 16) | OP_TYPE_INT, INT_TYPE_ID, 32, 1,
-    (4 << 16) | OP_CONSTANT, INT_TYPE_ID, CONSTANT_ARRAY_LENGTH_ID, TEST_BUFLEN,
-    (4 << 16) | OP_TYPE_ARRAY, INT_ARRAY_TYPE_ID, INT_TYPE_ID, CONSTANT_ARRAY_LENGTH_ID,
-    (3 << 16) | OP_TYPE_STRUCT, STRUCT_ID, INT_ARRAY_TYPE_ID,
-    (4 << 16) | OP_TYPE_POINTER, POINTER_TYPE_ID, UNIFORM, STRUCT_ID,
-    (4 << 16) | OP_TYPE_POINTER, ELEMENT_POINTER_TYPE_ID, UNIFORM, INT_TYPE_ID,
-    (4 << 16) | OP_TYPE_VECTOR, INT_VECTOR_TYPE_ID, INT_TYPE_ID, 3,
-    (4 << 16) | OP_TYPE_POINTER, INT_VECTOR_POINTER_TYPE_ID, INPUT, INT_VECTOR_TYPE_ID,
-    (4 << 16) | OP_TYPE_POINTER, INT_POINTER_TYPE_ID, INPUT, INT_TYPE_ID,
-
-    // then declare constants
-    (4 << 16) | OP_CONSTANT, INT_TYPE_ID, CONSTANT_ZERO_ID, 0,
-
-    // then declare variables
-    (4 << 16) | OP_VARIABLE, POINTER_TYPE_ID, IN_ID, UNIFORM,
-    (4 << 16) | OP_VARIABLE, POINTER_TYPE_ID, OUT_ID, UNIFORM,
-    (4 << 16) | OP_VARIABLE, INT_VECTOR_POINTER_TYPE_ID, GLOBAL_INVOCATION_ID, INPUT,
-
-    // then declare function
-    (5 << 16) | OP_FUNCTION, VOID_TYPE_ID, FUNC_ID, 0, FUNC_TYPE_ID,
-    (2 << 16) | OP_LABEL, LABEL_ID,
-    (5 << 16) | OP_ACCESS_CHAIN, INT_POINTER_TYPE_ID, GLOBAL_INVOCATION_X_PTR_ID, GLOBAL_INVOCATION_ID, CONSTANT_ZERO_ID,
-    (4 << 16) | OP_LOAD, INT_TYPE_ID, GLOBAL_INVOCATION_X_ID, GLOBAL_INVOCATION_X_PTR_ID,
-    (6 << 16) | OP_ACCESS_CHAIN, ELEMENT_POINTER_TYPE_ID, IN_ELEMENT_ID, IN_ID, CONSTANT_ZERO_ID, GLOBAL_INVOCATION_X_ID,
-    (4 << 16) | OP_LOAD, INT_TYPE_ID, TEMP_LOADED_ID, IN_ELEMENT_ID,
-    (6 << 16) | OP_ACCESS_CHAIN, ELEMENT_POINTER_TYPE_ID, OUT_ELEMENT_ID, OUT_ID, CONSTANT_ZERO_ID, GLOBAL_INVOCATION_X_ID,
-    (3 << 16) | OP_STORE, OUT_ELEMENT_ID, TEMP_LOADED_ID,
-    (1 << 16) | OP_RETURN,
-    (1 << 16) | OP_FUNCTION_END,
-};
-
 
 VkResult vkGetBestComputeQueueNPH(VkPhysicalDevice physicalDevice, uint32_t* qfam_idx) {
     uint32_t queueFamilyPropertiesCount = 0;
@@ -237,23 +111,6 @@ void vkcl_end(vkcl_context *ctx)
     vkDestroyDevice(ctx->dev, NULL);
 }
 
-void vkcl_waitfinish(vkcl_context *ctx, VkCommandBuffer *commandBuffer)
-{
-    VkSubmitInfo submitInfo = {
-        VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        0,
-        0,
-        0,
-        0,
-        1,
-        commandBuffer,
-        0,
-        0
-    };
-    VK_CHK(vkQueueSubmit(ctx->queue, 1, &submitInfo, 0));
-    VK_CHK(vkQueueWaitIdle(ctx->queue));
-}
-
 vkcl_memory *vkcl_memory_allocate(vkcl_context *ctx, uint32_t flags, VkDeviceSize size)
 {
     vkcl_memory *mem = (vkcl_memory*)malloc(sizeof(vkcl_memory));
@@ -322,8 +179,8 @@ void vkcl_descset_destroy(vkcl_descset *set)
 {
     if(set){
         vkcl_context *ctx = set->ctx;
-        vkDestroyDescriptorPool(ctx->dev, set->descriptorPool, NULL);
-        vkDestroyDescriptorSetLayout(ctx->dev, set->descriptorSetLayout, NULL);
+        //vkDestroyDescriptorPool(ctx->dev, set->descriptorPool, NULL);
+        //vkDestroyDescriptorSetLayout(ctx->dev, set->descriptorSetLayout, NULL);
         free(set);
     }
 }
@@ -401,17 +258,185 @@ void vkcl_buffer_destroy(vkcl_buffer *buf)
     }
 }
 
+vkcl_pipeline* vkcl_pipeline_create(vkcl_context *ctx, vkcl_descset **sets, uint32_t num_set, char *spv_fname)
+{
+    vkcl_pipeline *pipeline = (vkcl_pipeline*)malloc(sizeof(vkcl_pipeline));
+    // read-in SPIR-V binary from CL compilation
+    int spv_len = 0;
+    char *spv_shader = NULL;
+    {
+        struct stat buffer;
+        int         status;
+
+        status = stat(spv_fname, &buffer);
+        if(stat(spv_fname, &buffer) == 0){
+            printf("spir-v size %ld\n", buffer.st_size);
+            spv_shader = (char*)malloc(buffer.st_size);
+            spv_len = buffer.st_size;
+            FILE *fptr = fopen(spv_fname, "rb");
+            fread(spv_shader, 1, spv_len, fptr);
+            fclose(fptr);
+        }else{
+            printf("open shader file failed\n");
+        }
+    }
+    VkShaderModuleCreateInfo shaderModuleCreateInfo = {
+        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        0,
+        0,
+        spv_len,
+        (unsigned int*)(spv_shader)
+    };
+    VK_CHK(vkCreateShaderModule(ctx->dev, &shaderModuleCreateInfo, 0, &pipeline->shader_module));
+    free(spv_shader);
+
+    for(int i = 0; i < num_set; i++){
+        vkcl_descset *set = sets[i];
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            0,
+            0,
+            set->bindings,
+            set->descriptorSetLayoutBindings
+        };
+        //VkDescriptorSetLayout descriptorSetLayout;
+        VK_CHK(vkCreateDescriptorSetLayout(ctx->dev, &descriptorSetLayoutCreateInfo, 0, &pipeline->descriptorSetLayouts[i]));
+    }
+
+    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
+        VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        0,
+        0,
+        num_set,
+        pipeline->descriptorSetLayouts,
+        0,
+        0
+    };
+    VK_CHK(vkCreatePipelineLayout(ctx->dev, &pipelineLayoutCreateInfo, 0, &pipeline->pipelineLayout));
+
+    VkComputePipelineCreateInfo computePipelineCreateInfo = {
+        VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        0,
+        0,
+        {
+            VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            0,
+            0,
+            VK_SHADER_STAGE_COMPUTE_BIT,
+            pipeline->shader_module,
+            "vkcl",
+            0
+        },
+        pipeline->pipelineLayout,
+        0,
+        0
+    };
+    VK_CHK(vkCreateComputePipelines(ctx->dev, 0, 1, &computePipelineCreateInfo, 0, &pipeline->pipeline));
+
+    for(int i = 0; i < num_set; i++){
+        vkcl_descset *set = sets[i];
+        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            0,
+            0,
+            1,
+            set->bindings,
+            set->descriptorPoolSize
+        };
+        //VkDescriptorPool descriptorPool;
+        VK_CHK(vkCreateDescriptorPool(ctx->dev, &descriptorPoolCreateInfo, 0, &pipeline->descriptorPools[i]));
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            0,
+            pipeline->descriptorPools[i],
+            1,
+            &pipeline->descriptorSetLayouts[i]
+        };
+        //VkDescriptorSet descriptorSet;
+        VK_CHK(vkAllocateDescriptorSets(ctx->dev, &descriptorSetAllocateInfo, &pipeline->descriptorSets[i]));
+
+        for(int j = 0; j < set->bindings; j++){
+            set->writeDescriptorSet[j].dstSet = pipeline->descriptorSets[i];
+            set->writeDescriptorSet[j].dstSet = pipeline->descriptorSets[i];
+        }
+        vkUpdateDescriptorSets(ctx->dev, set->bindings, set->writeDescriptorSet, 0, 0);
+    }
+
+    VkCommandPoolCreateInfo commandPoolCreateInfo = {
+        VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        0,
+        0,
+        ctx->qfam_idx
+    };
+    VK_CHK(vkCreateCommandPool(ctx->dev, &commandPoolCreateInfo, 0, &pipeline->commandPool));
+
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
+        VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        0,
+        pipeline->commandPool,
+        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        1
+    };
+    VK_CHK(vkAllocateCommandBuffers(ctx->dev, &commandBufferAllocateInfo, &pipeline->commandBuffer));
+
+    pipeline->sets = num_set;
+    pipeline->ctx = ctx;
+
+    return pipeline;
+}
+
+void vkcl_pipeline_destroy(vkcl_pipeline* pipeline)
+{
+    if(pipeline){
+        vkcl_context *ctx = pipeline->ctx;
+        vkFreeCommandBuffers(ctx->dev, pipeline->commandPool, 1, &pipeline->commandBuffer);
+        vkDestroyCommandPool(ctx->dev, pipeline->commandPool, NULL);
+        vkDestroyPipeline(ctx->dev, pipeline->pipeline, NULL);
+        vkDestroyPipelineLayout(ctx->dev, pipeline->pipelineLayout, NULL);
+        for(int i = 0; i < pipeline->sets; i++){
+            vkDestroyDescriptorPool(ctx->dev, pipeline->descriptorPools[i], NULL);
+            vkDestroyDescriptorSetLayout(ctx->dev, pipeline->descriptorSetLayouts[i], NULL);
+        }
+        vkDestroyShaderModule(ctx->dev, pipeline->shader_module, NULL);
+        free(pipeline);
+    }
+}
+
+void vkcl_pipeline_exec(vkcl_pipeline *pipeline, uint32_t x, uint32_t y, uint32_t z)
+{
+    vkcl_context *ctx = pipeline->ctx;
+    VkCommandBufferBeginInfo commandBufferBeginInfo = {
+        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        0,
+        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        0
+    };
+    VK_CHK(vkBeginCommandBuffer(pipeline->commandBuffer, &commandBufferBeginInfo));
+    vkCmdBindPipeline(pipeline->commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->pipeline);
+    vkCmdBindDescriptorSets(pipeline->commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline->pipelineLayout, 0, pipeline->sets, pipeline->descriptorSets, 0, 0);
+    vkCmdDispatch(pipeline->commandBuffer, x, y, z);
+    VK_CHK(vkEndCommandBuffer(pipeline->commandBuffer));
+
+    VkSubmitInfo submitInfo = {
+        VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        0,
+        0,
+        0,
+        0,
+        1,
+        &pipeline->commandBuffer,
+        0,
+        0
+    };
+    VK_CHK(vkQueueSubmit(ctx->queue, 1, &submitInfo, 0));
+    VK_CHK(vkQueueWaitIdle(ctx->queue));
+}
+
 int main(int argc, char** argv) {
 
     vkcl_context ctx;
     vkcl_init(&ctx);
-    /*
-    for (uint32_t i = 0; i < physicalDeviceCount; i++) {
-        uint32_t ctx.qfam_idx = 0;
-        VK_CHK(vkGetBestComputeQueueNPH(physicalDevices[i], &ctx.qfam_idx));
-        printf("%d %d\n", i, ctx.qfam_idx);
-    }
-    */
     {
 
 
@@ -431,167 +456,22 @@ int main(int argc, char** argv) {
         vkcl_descset *set = vkcl_descset_create(&ctx, 0);
         vkcl_buffer *in_buffer = vkcl_buffer_create(&ctx, set, bufferSize, mem, 0);
         vkcl_buffer *out_buffer = vkcl_buffer_create(&ctx, set, bufferSize, mem, bufferSize);
+        vkcl_pipeline *pipeline = vkcl_pipeline_create(&ctx, &set, 1, argv[1]);
 
-        // read-in SPIR-V binary from CL compilation
-        int spv_len = 0;
-        char *spv_shader = NULL;
-        {
-            struct stat buffer;
-            int         status;
+        vkcl_pipeline_exec(pipeline, bufferSize / sizeof(int32_t), 1, 1);
 
-            status = stat(argv[1], &buffer);
-            if(stat(argv[1], &buffer) == 0){
-                printf("spir-v size %ld\n", buffer.st_size);
-                spv_shader = (char*)malloc(buffer.st_size);
-                spv_len = buffer.st_size;
-                FILE *fptr = fopen(argv[1], "rb");
-                fread(spv_shader, 1, spv_len, fptr);
-                fclose(fptr);
-            }else{
-                printf("open shader file failed\n");
-            }
-        }
-        VkShaderModuleCreateInfo shaderModuleCreateInfo = {
-            VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            0,
-            0,
-            #if 0
-            sizeof(shader),
-            (unsigned int*)(&shader)
-            #else
-            spv_len,
-            (unsigned int*)(spv_shader)
-            #endif
-        };
-        VkShaderModule shader_module;
-        VK_CHK(vkCreateShaderModule(ctx.dev, &shaderModuleCreateInfo, 0, &shader_module));
-        free(spv_shader);
-
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            0,
-            0,
-            2,
-            set->descriptorSetLayoutBindings
-        };
-        //VkDescriptorSetLayout descriptorSetLayout;
-        VK_CHK(vkCreateDescriptorSetLayout(ctx.dev, &descriptorSetLayoutCreateInfo, 0, &set->descriptorSetLayout));
-
-        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
-            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            0,
-            0,
-            1,
-            &set->descriptorSetLayout,
-            0,
-            0
-        };
-        VkPipelineLayout pipelineLayout;
-        VK_CHK(vkCreatePipelineLayout(ctx.dev, &pipelineLayoutCreateInfo, 0, &pipelineLayout));
-
-        VkComputePipelineCreateInfo computePipelineCreateInfo = {
-            VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-            0,
-            0,
-            {
-                VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                0,
-                0,
-                VK_SHADER_STAGE_COMPUTE_BIT,
-                shader_module,
-                "vkcl",
-                0
-            },
-            pipelineLayout,
-            0,
-            0
-        };
-        VkPipeline pipeline;
-        VK_CHK(vkCreateComputePipelines(ctx.dev, 0, 1, &computePipelineCreateInfo, 0, &pipeline));
-
-        VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            0,
-            0,
-            1,
-            2,
-            set->descriptorPoolSize
-        };
-        //VkDescriptorPool descriptorPool;
-        VK_CHK(vkCreateDescriptorPool(ctx.dev, &descriptorPoolCreateInfo, 0, &set->descriptorPool));
-
-        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            0,
-            set->descriptorPool,
-            1,
-            &set->descriptorSetLayout
-        };
-        //VkDescriptorSet descriptorSet;
-        VK_CHK(vkAllocateDescriptorSets(ctx.dev, &descriptorSetAllocateInfo, &set->descriptorSet));
-
-        set->writeDescriptorSet[0].dstSet = set->descriptorSet;
-        set->writeDescriptorSet[1].dstSet = set->descriptorSet;
-        vkUpdateDescriptorSets(ctx.dev, 2, set->writeDescriptorSet, 0, 0);
-
-        VkCommandPoolCreateInfo commandPoolCreateInfo = {
-            VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            0,
-            0,
-            ctx.qfam_idx
-        };
-        VkCommandPool commandPool;
-        VK_CHK(vkCreateCommandPool(ctx.dev, &commandPoolCreateInfo, 0, &commandPool));
-
-        VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-            VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            0,
-            commandPool,
-            VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            1
-        };
-        VkCommandBuffer commandBuffer;
-        VK_CHK(vkAllocateCommandBuffers(ctx.dev, &commandBufferAllocateInfo, &commandBuffer));
-
-        VkCommandBufferBeginInfo commandBufferBeginInfo = {
-            VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            0,
-            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-            0
-        };
-
-        VK_CHK(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo));
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &set->descriptorSet, 0, 0);
-        vkCmdDispatch(commandBuffer, bufferSize / sizeof(int32_t), 1, 1);
-        VK_CHK(vkEndCommandBuffer(commandBuffer));
-
-        vkcl_waitfinish(&ctx, &commandBuffer);
-        //VK_CHK(vkMapMemory(ctx.dev, mem->memory, 0, memorySize, 0, (void *)&payload));
         payload = vkcl_memory_map(mem);
         for (uint32_t k = 0, e = bufferSize / sizeof(int32_t); k < e; k++) {
             VK_CHK(payload[k + e] == payload[k] ? VK_SUCCESS : VK_ERROR_VALIDATION_FAILED_EXT);
         }
         vkcl_memory_unmap(mem);
 
-        vkFreeCommandBuffers(ctx.dev, commandPool, 1, &commandBuffer);
-        vkDestroyCommandPool(ctx.dev, commandPool, NULL);
-        vkDestroyPipeline(ctx.dev, pipeline, NULL);
-        vkDestroyPipelineLayout(ctx.dev, pipelineLayout, NULL);
-        vkDestroyDescriptorPool(ctx.dev, set->descriptorPool, NULL);
-        vkDestroyDescriptorSetLayout(ctx.dev, set->descriptorSetLayout, NULL);
-        vkDestroyShaderModule(ctx.dev, shader_module, NULL);
-        //vkDestroyBuffer(ctx.dev, out_buffer, NULL);
+        vkcl_pipeline_destroy(pipeline);
         vkcl_buffer_destroy(out_buffer);
-        //vkDestroyBuffer(ctx.dev, in_buffer, NULL);
         vkcl_buffer_destroy(in_buffer);
-        //vkFreeMemory(ctx.dev, memory, NULL);
         vkcl_memory_free(mem);
-        //vkDestroyDevice(ctx.dev, NULL);
         vkcl_end(&ctx);
     }
-
-    //free(physicalDevices);
 
     printf("DONE\n");
     return 0;
