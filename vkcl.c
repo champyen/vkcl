@@ -185,6 +185,80 @@ void vkcl_descset_destroy(vkcl_descset *set)
     }
 }
 
+vkcl_image *vkcl_image_allocate(vkcl_context *ctx, vkcl_descset *set, VkFormat format, int width, int height)
+{
+    vkcl_image *img = (vkcl_image*)calloc(1, sizeof(vkcl_image));
+    VkExtent3D img_extent = { width, height, 1 };
+    img->info.imageType = VK_IMAGE_TYPE_2D;
+    img->info.format = format;
+    img->info.mipLevels = 1;
+    img->info.arrayLayers = 1;
+    img->info.samples = VK_SAMPLE_COUNT_1_BIT;
+    img->info.tiling = VK_IMAGE_TILING_LINEAR;
+    img->info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
+    img->info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    img->info.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+    img->info.extent = img_extent;
+    img->info.flags = 0;
+    VK_CHK(vkCreateImage(ctx->dev, &img->info, NULL, &img->image));
+    // Get memory requirements for this image like size and alignment
+    vkGetImageMemoryRequirements(ctx->dev, img->image, &img->memReqs);
+    const VkMemoryAllocateInfo memoryAllocateInfo = {
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        0,
+        img->memReqs.size,
+        img->memReqs.memoryTypeBits | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+    };
+
+    vkcl_memory *mem = vkcl_memory_allocate(ctx, img->memReqs.memoryTypeBits | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, img->memReqs.size);
+    VK_CHK(vkBindImageMemory(ctx->dev, img->image, mem->memory, 0));
+    img->mem = mem;
+    img->set = set;
+
+    //TODO, view, sampler
+
+
+    uint32_t binding = set->bindings++;
+    set->descriptorSetLayoutBindings[binding].binding = binding;
+    set->descriptorSetLayoutBindings[binding].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    set->descriptorSetLayoutBindings[binding].descriptorCount = 1;
+    set->descriptorSetLayoutBindings[binding].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    set->descriptorSetLayoutBindings[binding].pImmutableSamplers = NULL;
+
+    set->descriptorPoolSize[binding].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    set->descriptorPoolSize[binding].descriptorCount = 1;
+
+    VkWriteDescriptorSet writeDescriptorSet = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        0,
+        0, //descriptorSet,
+        binding,
+        0,
+        1,
+        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        &img->desc_info,
+        0,
+        0
+    };
+    /*
+    set->writeDescriptorSet[binding].buffer = buf->buffer;
+    set->writeDescriptorSet[binding].offset = 0;
+    set->writeDescriptorSet[binding].range = VK_WHOLE_SIZE;
+    */
+    set->writeDescriptorSet[binding] = writeDescriptorSet;
+
+    return img;
+}
+
+void vkcl_image_destroy(vkcl_image *img)
+{
+    if(img){
+        vkcl_context *ctx = img->ctx;
+        vkDestroyImage(ctx->dev, img->image, NULL);
+        free(img);
+    }
+}
+
 vkcl_buffer *vkcl_buffer_create(vkcl_context *ctx, vkcl_descset *set, uint32_t size, vkcl_memory *mem, uint32_t offset)
 {
     vkcl_buffer *buf = (vkcl_buffer*)calloc(1, sizeof(vkcl_buffer));

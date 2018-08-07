@@ -60,6 +60,7 @@ typedef struct{
     VkDescriptorSetLayoutBinding        binding;
     VkImageCreateInfo                   info;
     VkImage                             image;
+    VkMemoryRequirements                memReqs;
 
     VkDescriptorPoolSize                pool_size;
     VkDescriptorImageInfo               desc_info;
