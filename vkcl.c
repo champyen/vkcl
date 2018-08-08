@@ -9,9 +9,6 @@
 
 #include "vkcl.h"
 
-#define TEST_BUFLEN 16384
-
-
 VkResult vkGetBestComputeQueueNPH(VkPhysicalDevice physicalDevice, uint32_t* qfam_idx) {
     uint32_t queueFamilyPropertiesCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertiesCount, 0);
@@ -215,17 +212,31 @@ vkcl_image *vkcl_image_allocate(vkcl_context *ctx, vkcl_descset *set, VkFormat f
     img->mem = mem;
     img->set = set;
 
-    //TODO, view, sampler
-
+	// Create image view
+	VkImageViewCreateInfo view = {
+        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        0,
+        0,
+        img->image,
+        VK_IMAGE_VIEW_TYPE_2D,
+        format,
+        { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
+        { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+    };
+    VK_CHK(vkCreateImageView(ctx->dev, &view, NULL, &img->view));
+    //TODO: create layout, sampler
+    img->desc_info.imageLayout = img->layout;
+    img->desc_info.imageView = img->view;
+    img->desc_info.sampler = img->sampler;
 
     uint32_t binding = set->bindings++;
     set->descriptorSetLayoutBindings[binding].binding = binding;
-    set->descriptorSetLayoutBindings[binding].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    set->descriptorSetLayoutBindings[binding].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     set->descriptorSetLayoutBindings[binding].descriptorCount = 1;
     set->descriptorSetLayoutBindings[binding].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     set->descriptorSetLayoutBindings[binding].pImmutableSamplers = NULL;
 
-    set->descriptorPoolSize[binding].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    set->descriptorPoolSize[binding].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     set->descriptorPoolSize[binding].descriptorCount = 1;
 
     VkWriteDescriptorSet writeDescriptorSet = {
@@ -254,7 +265,9 @@ void vkcl_image_destroy(vkcl_image *img)
 {
     if(img){
         vkcl_context *ctx = img->ctx;
+        vkcl_memory *mem = img->mem;
         vkDestroyImage(ctx->dev, img->image, NULL);
+        vkcl_memory_free(mem);
         free(img);
     }
 }
@@ -506,6 +519,8 @@ void vkcl_pipeline_exec(vkcl_pipeline *pipeline, uint32_t x, uint32_t y, uint32_
     VK_CHK(vkQueueSubmit(ctx->queue, 1, &submitInfo, 0));
     VK_CHK(vkQueueWaitIdle(ctx->queue));
 }
+
+#define TEST_BUFLEN 16384
 
 int main(int argc, char** argv) {
 

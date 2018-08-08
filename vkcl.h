@@ -59,6 +59,9 @@ typedef struct{
 typedef struct{
     VkDescriptorSetLayoutBinding        binding;
     VkImageCreateInfo                   info;
+    VkImageView                         view;
+    VkSampler                           sampler;
+    VkImageLayout                       layout;
     VkImage                             image;
     VkMemoryRequirements                memReqs;
 
@@ -86,6 +89,8 @@ typedef struct{
 } vkcl_pipeline;
 
 #define VK_CHK(result) {  if (VK_SUCCESS != (result)) { fprintf(stderr, "Failure at %u %s\n", __LINE__, __FILE__); exit(-1); }  }
+
+#define VKCL_GET_MEM(x) (x->mem)
 
 void vkcl_init(vkcl_context *ctx);
 void vkcl_end(vkcl_context *ctx);
